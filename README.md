@@ -9,8 +9,6 @@ A private self-hosted Dynamic DNS (DDNS) update service that updates records via
 - **No Database Required** – Uses a simple text file for domain authentication.
 - **Supports No-Parameter Requests** – Ideal for routers with limited capabilities.
 
----
-
 ## Installation
 
 ### Clone Repository
@@ -65,7 +63,7 @@ If you want to use NGINX as a reverse proxy, add the following configuration:
 ```txt
 server {
     listen 80;
-    server_name mydomain.com;
+    server_name something.cc;
 
     location / {
         proxy_pass http://localhost:3000;
@@ -77,37 +75,42 @@ server {
 }
 ```
 
----
-
 ## Usage
 
-Replace `localhost:3000` with your domain, `mydomain.something.cc` and `client_token` with your own values.
+Replace `something.cc` with your domain, `mydomain.something.cc` and `client_token` with your own values.
 
 ### Standard Update Request
 
 Auto-detects IPv4 and updates the record.
 
-    curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token"
+    curl "https://something.cc/update?domains=mydomain.something.cc&token=client_token"
 
 ### Update with Specified IPv4 Address
 
-    curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token&ip=203.0.113.42"
+    curl "https://something.cc/update?domains=mydomain.something.cc&token=client_token&ip=203.0.113.42"
 
 ### Clear All Records (not supported yet)
 
-    curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token&clear=true"
+    curl "https://something.cc/update?domains=mydomain.something.cc&token=client_token&clear=true"
 
 ### TXT Record Update (not supported yet)
 
-    curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token&txt=myverification"
+    curl "https://something.cc/update?domains=mydomain.something.cc&token=client_token&txt=myverification"
 
 ### No-Parameter Request (For Basic Routers)
 
-    curl "http://localhost:3000/update/mydomain.something.cc/client_token/203.0.113.42"
-
----
+    curl "https://something.cc/update/mydomain.something.cc/client_token"
+    curl "https://something.cc/update/mydomain.something.cc/client_token/203.0.113.42"
 
 ## Setting Up Automatic Updates
+
+### Windows (Task Scheduler)
+
+Create a new task which runs the command `C:\Windows\System32\curl.exe` with the following arguments:
+
+    https://something.cc/update?domains=mydomain.something.cc&token=client_token
+
+Configure it to run every 5 minutes.
 
 ### Linux (cron)
 
@@ -117,15 +120,15 @@ Edit your crontab:
 
 Add a job to update the record every 5 minutes:
 
-    */5 * * * * curl -s "http://localhost:8080/update?domains=mydomain.something.cc&token=client_token" > /dev/null
+    */5 * * * * curl -s "https://something.cc/update?domains=mydomain.something.cc&token=client_token" > /dev/null
 
 ### macOS (launchd)
 
-1. Create a plist file:
+Create a plist file:
 
-    nano ~/Library/LaunchAgents/com.mydomain.ddns.plist
+    nano ~/Library/LaunchAgents/cc.something.ddns.plist
 
-1. Add:
+Add:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -138,7 +141,7 @@ Add a job to update the record every 5 minutes:
         <array>
             <string>/usr/bin/curl</string>
             <string>-s</string>
-            <string>"http://localhost:8080/update?domains=mydomain.something.cc&token=client_token"</string>
+            <string>"https://something.cc/update?domains=mydomain.something.cc&token=client_token"</string>
         </array>
         <key>StartInterval</key>
         <integer>300</integer>
@@ -146,35 +149,21 @@ Add a job to update the record every 5 minutes:
 </plist>
 ```
 
-1. Load the job:
+Load the job:
 
-    launchctl load ~/Library/LaunchAgents/com.mydomain.ddns.plist
+    launchctl load ~/Library/LaunchAgents/cc.something.ddns.plist
 
-### Windows with PowerShell script
+### Troubleshooting
 
-1. Create a PowerShell script:
+If you encounter issues, check the following:
 
-```ps1
-(iwr "http://localhost:8080/update?domains=mydomain.something.cc&token=client_token").content
-```
+- Ensure the `CLOUDFLARE_API_TOKEN` is set in `.env.local` and is correct.
+- Ensure the API token is correct and matches that defined in `domains.txt`.
+- Verify that your domains are listed in `domains.txt`.
+- Confirm that the server is running and accessible.
 
-1. Create a scheduled task to run the script every 5 minutes.
-2. Set the action to run the PowerShell script.
-3. Set the trigger to run every 5 minutes.
-4. Set the user account to run the task.
-5. Set the task to run whether the user is logged in or not.
-
-### **Windows (Task Scheduler)**
-
-1. Open **Task Scheduler** → **Create Basic Task**.
-2. Choose **Run a program** and set **Program/script** to `C:\Windows\System32\curl.exe`.
-3. Set **Arguments** to `"http://localhost:8080/update?domains=mydomain.something.cc&token=client_token"`
-4. Configure it to run every 5 minutes.
-
----
-
-## **Security Considerations**
+## Security Considerations
 
 - Ensure `domains.txt` is not exposed to unauthorized users.
-- Use HTTPS to secure communications.
+- Use only HTTPS to secure communications.
 - Keep your Cloudflare API token private.
