@@ -15,16 +15,12 @@ A private self-hosted Dynamic DNS (DDNS) update service that updates records via
 
 ### Clone Repository
 
-```sh
-git clone https://github.com/andygock/dynamic-dns-cloudflare.git
-cd dynamic-dns-cloudflare
-```
+    git clone https://github.com/andygock/dynamic-dns-cloudflare.git
+    cd dynamic-dns-cloudflare
 
 ### Install Dependencies
 
-```sh
-npm install
-```
+    npm install
 
 ### Create Environment Variables
 
@@ -48,23 +44,17 @@ Edit manually as needed.
 
 Here are some methods to generate a 256 bit key:
 
-```txt
-python -c "import os; print(os.urandom(32).hex())"
-```
+    python -c "import os; print(os.urandom(32).hex())"
 
 ### Start the Server, for testing
 
-```sh
-node server.js
-```
+    node server.js
 
 The server runs on port `3000` by default if env `PORT` is not set.
 
 ### Start the Server, for production using `pm2`
 
-```sh
-pm2 start index.js --name dynamic-dns
-```
+    pm2 start index.js --name dynamic-dns
 
 Check for errors with `pm2 logs` and save with `pm2 save`.
 
@@ -97,39 +87,23 @@ Replace `localhost:3000` with your domain, `mydomain.something.cc` and `client_t
 
 Auto-detects IPv4 and updates the record.
 
-```sh
-curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token"
-```
+    curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token"
 
 ### Update with Specified IPv4 Address
 
-```sh
-curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token&ip=203.0.113.42"
-```
+    curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token&ip=203.0.113.42"
 
-### Update Both IPv4 and IPv6
+### Clear All Records (not supported yet)
 
-```sh
-curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token&ip=203.0.113.42&ipv6=2001:db8::ff00:42:8329"
-```
+    curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token&clear=true"
 
-### Clear All Records
+### TXT Record Update (not supported yet)
 
-```sh
-curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token&clear=true"
-```
-
-### TXT Record Update
-
-```sh
-curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token&txt=myverification"
-```
+    curl "http://localhost:3000/update?domains=mydomain.something.cc&token=client_token&txt=myverification"
 
 ### No-Parameter Request (For Basic Routers)
 
-```sh
-curl "http://localhost:3000/update/mydomain.something.cc/client_token/203.0.113.42"
-```
+    curl "http://localhost:3000/update/mydomain.something.cc/client_token/203.0.113.42"
 
 ---
 
@@ -139,23 +113,17 @@ curl "http://localhost:3000/update/mydomain.something.cc/client_token/203.0.113.
 
 Edit your crontab:
 
-```sh
-crontab -e
-```
+    crontab -e
 
 Add a job to update the record every 5 minutes:
 
-```sh
-*/5 * * * * curl -s "http://localhost:8080/update?domains=mydomain.something.cc&token=client_token"
-```
+    */5 * * * * curl -s "http://localhost:8080/update?domains=mydomain.something.cc&token=client_token" > /dev/null
 
 ### macOS (launchd)
 
 1. Create a plist file:
 
-```sh
-nano ~/Library/LaunchAgents/com.mydomain.ddns.plist
-```
+    nano ~/Library/LaunchAgents/com.mydomain.ddns.plist
 
 1. Add:
 
@@ -180,9 +148,7 @@ nano ~/Library/LaunchAgents/com.mydomain.ddns.plist
 
 1. Load the job:
 
-```sh
-launchctl load ~/Library/LaunchAgents/com.mydomain.ddns.plist
-```
+    launchctl load ~/Library/LaunchAgents/com.mydomain.ddns.plist
 
 ### Windows with PowerShell script
 

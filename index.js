@@ -107,22 +107,52 @@ const updateDnsRecord = async (zoneId, recordId, type, name, content) => {
 // Handle Updates
 app.get(["/update", "/update/:domain/:token/:ip?"], async (req, res) => {
   try {
-    let { domains, token, ip, ipv6, verbose, clear, txt } = req.query;
-    let requestedDomain = req.params.domain || domains;
-    let providedToken = req.params.token || token;
-    let providedIp = req.params.ip || ip;
+    let providedDomains;
+    let providedToken;
+    let providedIp;
+    let domains;
+    let token;
+    let ip;
 
-    if (!requestedDomain || !providedToken) {
+    // these are not supported yet
+    let ipv6;
+    let clear;
+    let txt;
+
+    let visitorIp =
+      req.headers["x-real-ip"] ||
+      req.headers["x-forwarded-for"] ||
+      req.socket.remoteAddress ||
+      "0.0.0.0";
+
+    // are we using parameters?
+    if (req.params.domain && req.params.token) {
+      // path parameters
+      providedDomains = req.params.domains;
+      providedToken = req.params.token;
+      providedIp = req.params.ip;
+    } else {
+      // query string parameters
+      providedDomains = req.query.domains;
+      providedToken = req.query.token;
+      providedIp = req.query.ip;
+    }
+
+    if (debug) {
+      console.log("Visitor IP:", visitorIp);
+      console.log("Provided IP:", providedIp);
+      console.log("Provided Token:", providedToken);
+      console.log("Provided Domains:", providedDomains);
+    }
+
+    if (!providedDomains || !providedToken) {
       if (debug) console.log("Missing domain or token");
       return res.send("KO");
     }
 
-    // Handle No-Parameter Format
-    if (req.params.domain && req.params.token) {
-      domains = requestedDomain;
-      token = providedToken;
-      ip = providedIp || req.socket.remoteAddress;
-    }
+    ip = providedIp || visitorIp;
+    token = providedToken;
+    domains = providedDomains;
 
     // Validate domain ownership
     const domainList = domains.split(",");
@@ -135,17 +165,6 @@ app.get(["/update", "/update/:domain/:token/:ip?"], async (req, res) => {
           );
         return res.send("KO");
       }
-    }
-
-    // clear is not supported
-    if (clear) {
-      if (debug) console.log("Clear is not supported");
-      return res.send("KO");
-    }
-
-    if (!providedIp) {
-      providedIp = req.socket.remoteAddress;
-      if (debug) console.log("providedIp:", providedIp);
     }
 
     const results = [];
@@ -178,6 +197,7 @@ app.get(["/update", "/update/:domain/:token/:ip?"], async (req, res) => {
 
         let result = false;
         if (ipv6) {
+          // not supported yet
           result = await updateDnsRecord(
             zoneId,
             recordId,
@@ -186,20 +206,14 @@ app.get(["/update", "/update/:domain/:token/:ip?"], async (req, res) => {
             ipv6
           );
         } else {
-          result = await updateDnsRecord(
-            zoneId,
-            recordId,
-            "A",
-            domain,
-            providedIp
-          );
+          result = await updateDnsRecord(zoneId, recordId, "A", domain, ip);
         }
         if (result === false) {
           errors.push(`Error updating DNS record for domain: ${domain}`);
           continue;
         }
 
-        results.push(`OK\n${providedIp}\n${ipv6 || ""}\nUPDATED`);
+        results.push(`OK\n${ip}\n${ipv6 || ""}\nUPDATED`);
       }
     } // end domainList
 
