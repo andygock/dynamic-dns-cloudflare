@@ -1,32 +1,34 @@
 # Private self-hosted Dynamic DNS (DDNS) update service for Cloudflare
 
-A private self-hosted Dynamic DNS (DDNS) update service that updates records via [Cloudflare](https://www.cloudflare.com/). This Node.js Express server allows users to update their A, AAAA, and TXT DNS records dynamically. Inspired by parts of [DuckDNS](https://www.duckdns.org/)'s protocol.
+A private self-hosted Dynamic DNS (DDNS) update service that updates records via [Cloudflare](https://www.cloudflare.com/). This Node.js Express server allows users to update their A DNS records dynamically. Inspired by parts of [DuckDNS](https://www.duckdns.org/)'s protocol.
 
 ## Features
 
-- **Supports A, AAAA, and TXT Records** – Works with IPv4 and IPv6.
+- **Supports A Records** – Works with IPv4.
 - **Cloudflare Integration** – Updates records via Cloudflare’s API.
-- **No Database Required** – Uses a simple text file for domain authentication.
-- **Supports No-Parameter Requests** – Ideal for routers with limited capabilities.
+- **No Database Required** – Uses a simple text file for client authentication.
 
 ## Installation
 
-### Clone Repository
+### Clone repository
 
     git clone https://github.com/andygock/dynamic-dns-cloudflare.git
     cd dynamic-dns-cloudflare
 
-### Install Dependencies
+### Install dependencies
 
     npm install
 
-### Create Environment Variables
+### Create environment variables
 
 Create a `.env.local` file and add your Cloudflare API token:
 
 ```txt
 CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
 PORT=3000
+
+# optional debugging, comment out to disable
+#DEBUG=1
 ```
 
 ### Create `domains.txt`
@@ -40,17 +42,17 @@ anotherdomain.something.cc:another_client_token
 
 Edit manually as needed.
 
-Here are some methods to generate a 256 bit key:
+Here is a method to generate a 256 bit key:
 
     python -c "import os; print(os.urandom(32).hex())"
 
-### Start the Server, for testing
+### Start the server, for testing
 
     node server.js
 
 The server runs on port `3000` by default if env `PORT` is not set.
 
-### Start the Server, for production using `pm2`
+### Start the server, for production using `pm2`
 
     pm2 start index.js --name dynamic-dns
 
@@ -58,7 +60,7 @@ Check for errors with `pm2 logs` and save with `pm2 save`.
 
 ### NGINX proxy pass
 
-If you want to use NGINX as a reverse proxy, add the following configuration:
+If you want to use NGINX as a reverse proxy (recommended), add the following configuration:
 
 ```txt
 server {
@@ -77,42 +79,52 @@ server {
 
 ## Usage
 
-Replace `something.cc` with your domain, `mydomain.something.cc` and `client_token` with your own values.
+Replace `something.cc` with your domain, `mydomain.something.cc` and `client_token` with your own values which much match those defined in `domains.txt`.
 
-### Standard Update Request
+To update a record, make a GET request to the server to a crafted URL.
+
+Examples below of usage using `curl` which should be suitable for Linux or Mac.
+
+For Windows, you could use PowerShell's `Invoke-WebRequest`, and perform something like:
+
+    (iwr "URL").content
+
+The server will respond with 200 response code with the body text `OK` for successful updates, and `KO` for failed updates.
+
+### Standard update request
 
 Auto-detects IPv4 and updates the record.
 
     curl "https://something.cc/update?domains=mydomain.something.cc&token=client_token"
 
-### Update with Specified IPv4 Address
+### Update with specified IPv4 address
 
     curl "https://something.cc/update?domains=mydomain.something.cc&token=client_token&ip=203.0.113.42"
 
-### Clear All Records (not supported yet)
+### No-parameter request
 
-    curl "https://something.cc/update?domains=mydomain.something.cc&token=client_token&clear=true"
-
-### TXT Record Update (not supported yet)
-
-    curl "https://something.cc/update?domains=mydomain.something.cc&token=client_token&txt=myverification"
-
-### No-Parameter Request (For Basic Routers)
+May be useful for special uses cases where query string parameters are not supported.
 
     curl "https://something.cc/update/mydomain.something.cc/client_token"
     curl "https://something.cc/update/mydomain.something.cc/client_token/203.0.113.42"
 
-## Setting Up Automatic Updates
+## Setting Up automatic updates
 
-### Windows (Task Scheduler)
+### Windows via task Scheduler
 
-Create a new task which runs the command `C:\Windows\System32\curl.exe` with the following arguments:
+This method will perform updates and will hide the command prompt window.
 
-    https://something.cc/update?domains=mydomain.something.cc&token=client_token
+Create a new task with security option "Run whether user is logged on or not" and "Do not store password".
 
-Configure it to run every 5 minutes.
+In the "Triggers" tab, create a new trigger to run the task every 5 minutes.
 
-### Linux (cron)
+In the "Actions" tab, create a new action with the following details:
+
+- Action: Start a program
+- Program/script: `cmd.exe`
+- Add arguments: `/c "C:\Windows\System32\curl.exe" "URL"` (use your actual update URL)
+
+### Linux via cron job
 
 Edit your crontab:
 
@@ -122,7 +134,7 @@ Add a job to update the record every 5 minutes:
 
     */5 * * * * curl -s "https://something.cc/update?domains=mydomain.something.cc&token=client_token" > /dev/null
 
-### macOS (launchd)
+### macOS via launchd
 
 Create a plist file:
 
@@ -162,8 +174,8 @@ If you encounter issues, check the following:
 - Verify that your domains are listed in `domains.txt`.
 - Confirm that the server is running and accessible.
 
-## Security Considerations
+## Security considerations
 
 - Ensure `domains.txt` is not exposed to unauthorized users.
-- Use only HTTPS to secure communications.
+- Use only HTTPS to secure communications. Best to disable HTTP entirely for this service in your web server configuration.
 - Keep your Cloudflare API token private.
